@@ -1,0 +1,26 @@
+{
+  "manifest_version": 3,
+  "name": "NotebookLM",
+  "version": "1.0",
+  "description": "Browse your NotebookLM notebooks and upload selected browser tabs as sources — right from the toolbar.",
+  "permissions": [
+    "cookies",
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://notebooklm.google.com/*"
+  ],
+  "icons": {
+    "16": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icon.png"
+  },
+  "background": {
+    "service_worker": "background.js"
+  }
+}

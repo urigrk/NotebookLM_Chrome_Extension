@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32">
+  <style>
+    /* Default for Light Chrome Theme */
+    .icon-shape { fill: #333333; } 
+
+    /* Auto-switch for Dark Chrome Theme */
+    @media (prefers-color-scheme: dark) {
+      .icon-shape { fill: #ffffff; }
+    }
+  </style>
+  <rect class="icon-shape" width="30" height="30" rx="5" />
+</svg>
