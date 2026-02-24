@@ -37,11 +37,11 @@ This extension is not on the Chrome Web Store yet, so it needs to be loaded manu
 
 1. **Clone or download** this repository.
    ```bash
-   git clone https://github.com/your-username/NotebookLM-chrome-extension.git
+   git clone https://github.com/urigrk/NotebookLM_Chrome_Extension.git
    ```
 2. Open `chrome://extensions/` in Chrome.
 3. Enable **Developer Mode** using the toggle in the top-right corner.
-4. Click **"Load unpacked"** and select the `NotebookLM-chrome-extension` directory.
+4. Click **"Load unpacked"** and select the `NotebookLM_Chrome_Extension` directory.
 
 The extension icon should now appear in your toolbar.
 
