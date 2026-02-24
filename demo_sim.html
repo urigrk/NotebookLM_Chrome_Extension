@@ -1,0 +1,947 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NotebookLM Extension Demo</title>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Google+Sans:wght@400;500;700&family=Google+Sans+Text:wght@400;500&family=Inter:wght@400;500;600&display=swap"
+        rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', 'Inter', sans-serif;
+            background: #2b2b2b;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        .chrome-window {
+            width: 1100px;
+            height: 680px;
+            background: #fff;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 20px 80px rgba(0, 0, 0, 0.5);
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* ── Title bar ── */
+        .title-bar {
+            background: #dee1e6;
+            height: 38px;
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            gap: 8px;
+            flex-shrink: 0;
+        }
+
+        .window-btns {
+            display: flex;
+            gap: 7px;
+            margin-right: 8px;
+        }
+
+        .window-btns span {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: block;
+        }
+
+        .window-btns .close {
+            background: #ed6a5e;
+        }
+
+        .window-btns .min {
+            background: #f5c040;
+        }
+
+        .window-btns .max {
+            background: #61c554;
+        }
+
+        /* ── Tab bar ── */
+        .tab-bar {
+            background: #dee1e6;
+            display: flex;
+            align-items: flex-end;
+            padding: 0 8px;
+            gap: 1px;
+            height: 36px;
+            flex-shrink: 0;
+        }
+
+        .tab {
+            height: 32px;
+            display: flex;
+            align-items: center;
+            padding: 0 16px;
+            background: #c8ccd1;
+            border-radius: 8px 8px 0 0;
+            font-size: 12px;
+            color: #5f6368;
+            gap: 7px;
+            cursor: pointer;
+            min-width: 140px;
+            max-width: 220px;
+            position: relative;
+            transition: background 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+            user-select: none;
+        }
+
+        .tab.active {
+            background: #fff;
+            color: #202124;
+            z-index: 2;
+        }
+
+        .tab .tab-favicon {
+            width: 16px;
+            height: 16px;
+            border-radius: 3px;
+            flex-shrink: 0;
+        }
+
+        .tab .tab-label {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 12px;
+        }
+
+        .tab .tab-close {
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+            color: #999;
+            border-radius: 50%;
+            flex-shrink: 0;
+        }
+
+        /* highlighted tabs (selected for upload) */
+        .tab.highlighted {
+            background: #c2dbff !important;
+            color: #1a56db !important;
+            box-shadow: inset 0 -2px 0 #4285f4;
+        }
+
+        .tab.highlighted.active {
+            background: #dbe8ff !important;
+        }
+
+        .tab-new {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #5f6368;
+            font-size: 18px;
+            margin-left: 4px;
+            cursor: default;
+        }
+
+        /* ── URL bar ── */
+        .url-bar-area {
+            background: #fff;
+            padding: 6px 12px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-bottom: 1px solid #e5e5e5;
+            flex-shrink: 0;
+        }
+
+        .nav-btns {
+            display: flex;
+            gap: 2px;
+        }
+
+        .nav-btns span {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #5f6368;
+            font-size: 16px;
+            border-radius: 50%;
+        }
+
+        .url-box {
+            flex: 1;
+            height: 32px;
+            background: #f1f3f4;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            padding: 0 14px;
+            font-size: 13px;
+            color: #5f6368;
+            gap: 6px;
+        }
+
+        .url-box .lock-icon {
+            color: #5f6368;
+            font-size: 14px;
+        }
+
+        .url-box .url-text {
+            color: #202124;
+        }
+
+        .ext-area {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .ext-icon {
+            width: 28px;
+            height: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            cursor: pointer;
+            transition: background 0.2s;
+            position: relative;
+        }
+
+        .ext-icon:hover {
+            background: #e8e8e8;
+        }
+
+        .ext-icon img {
+            width: 18px;
+            height: 18px;
+        }
+
+        /* ── Page content ── */
+        .page-content {
+            flex: 1;
+            background: #fff;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .page-body {
+            padding: 40px 60px;
+        }
+
+        .page-body h1 {
+            font-size: 28px;
+            color: #202124;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .page-body .breadcrumb {
+            font-size: 13px;
+            color: #5f6368;
+            margin-bottom: 24px;
+        }
+
+        .page-body .breadcrumb span {
+            color: #1a73e8;
+        }
+
+        .page-body p {
+            font-size: 15px;
+            color: #3c4043;
+            line-height: 1.7;
+            max-width: 680px;
+        }
+
+        .page-body .article-meta {
+            display: flex;
+            gap: 16px;
+            margin-top: 16px;
+            font-size: 12px;
+            color: #80868b;
+        }
+
+        .skeleton-line {
+            height: 14px;
+            background: #f1f3f4;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+
+        .skeleton-line:nth-child(odd) {
+            width: 100%;
+        }
+
+        .skeleton-line:nth-child(even) {
+            width: 85%;
+        }
+
+        .skeleton-img {
+            width: 100%;
+            height: 180px;
+            background: linear-gradient(135deg, #f1f3f4 0%, #e8eaed 100%);
+            border-radius: 8px;
+            margin-top: 20px;
+        }
+
+        /* ── Extension popup ── */
+        .ext-popup-overlay {
+            position: absolute;
+            top: 0;
+            right: 0;
+            bottom: 0;
+            left: 0;
+            z-index: 500;
+            pointer-events: none;
+            display: none;
+        }
+
+        .ext-popup-overlay.visible {
+            display: block;
+            pointer-events: auto;
+        }
+
+        .ext-popup {
+            position: absolute;
+            top: 76px;
+            right: 56px;
+            width: 340px;
+            background: #f0eee8;
+            border-radius: 12px;
+            box-shadow: 0 8px 40px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0, 0, 0, 0.06);
+            overflow: hidden;
+            transform-origin: top right;
+            display: flex;
+            flex-direction: column;
+            max-height: 480px;
+            animation: popupOpen 0.3s cubic-bezier(.2, 0, 0, 1) forwards;
+        }
+
+        @keyframes popupOpen {
+            from {
+                transform: scale(0.92);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        .ext-popup::before {
+            content: '';
+            position: absolute;
+            top: -7px;
+            right: 20px;
+            width: 14px;
+            height: 14px;
+            background: #faf8f4;
+            transform: rotate(45deg);
+            box-shadow: -1px -1px 2px rgba(0, 0, 0, 0.05);
+            z-index: 1;
+        }
+
+        .popup-header {
+            padding: 14px 16px 10px;
+            background: #faf8f4;
+            border-bottom: 1px solid #ddd9d0;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            position: relative;
+            z-index: 2;
+        }
+
+        .popup-brand {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+        }
+
+        .popup-brand img {
+            width: 20px;
+            height: 20px;
+        }
+
+        .popup-brand span {
+            font-family: 'Google Sans', sans-serif;
+            font-size: 15px;
+            font-weight: 500;
+            color: #1b1b1f;
+        }
+
+        .popup-header-right {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .popup-tab-badge {
+            font-size: 11px;
+            font-weight: 500;
+            padding: 3px 10px;
+            border-radius: 100px;
+            background: #c4eed0;
+            color: #1b6e2d;
+        }
+
+        .popup-refresh-btn {
+            width: 30px;
+            height: 30px;
+            border: none;
+            background: transparent;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #49454f;
+            cursor: pointer;
+        }
+
+        .popup-search-wrap {
+            padding: 8px 16px 6px;
+            background: #faf8f4;
+        }
+
+        .popup-search-box {
+            position: relative;
+        }
+
+        .popup-search-icon {
+            position: absolute;
+            left: 10px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #79747e;
+        }
+
+        .popup-search-input {
+            width: 100%;
+            padding: 8px 12px 8px 32px;
+            border: none;
+            border-radius: 100px;
+            background: #eae8e2;
+            font-family: 'Google Sans Text', sans-serif;
+            font-size: 13px;
+            color: #1b1b1f;
+            outline: none;
+        }
+
+        .popup-status {
+            padding: 5px 16px 6px;
+            font-size: 11px;
+            color: #79747e;
+            display: flex;
+            justify-content: space-between;
+            background: #faf8f4;
+            border-bottom: 1px solid #ddd9d0;
+        }
+
+        .popup-status .count {
+            color: #49454f;
+            font-weight: 500;
+        }
+
+        .popup-list {
+            padding: 10px 12px 14px;
+            overflow-y: auto;
+            flex: 1;
+        }
+
+        .popup-section-label {
+            font-family: 'Google Sans', sans-serif;
+            font-size: 10px;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.8px;
+            color: #79747e;
+            margin: 6px 4px 5px;
+        }
+
+        .popup-nb-card {
+            display: flex;
+            align-items: center;
+            padding: 10px 12px;
+            margin-bottom: 5px;
+            border-radius: 10px;
+            background: #ffffff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+            cursor: pointer;
+            transition: all 0.25s cubic-bezier(.2, 0, 0, 1);
+        }
+
+        .popup-nb-card:hover {
+            background: #f5f3ef;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+        }
+
+        .popup-nb-card.selected {
+            background: #e4e0f8;
+            box-shadow: 0 0 0 2px #8a6ef5, 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+
+        .popup-nb-card .nb-emoji {
+            font-size: 18px;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #eaddff;
+            border-radius: 7px;
+            margin-right: 10px;
+            flex-shrink: 0;
+        }
+
+        .popup-nb-card .nb-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .popup-nb-card .nb-name {
+            font-family: 'Google Sans', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            color: #1b1b1f;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .popup-nb-card .nb-sources {
+            font-size: 11px;
+            color: #79747e;
+            margin-top: 1px;
+        }
+
+        .popup-nb-card .nb-arrow {
+            font-size: 13px;
+            color: #79747e;
+            flex-shrink: 0;
+            margin-left: 6px;
+            transition: all 0.2s;
+        }
+
+        .popup-nb-card.selected .nb-arrow {
+            color: #6750a4;
+            transform: rotate(90deg);
+        }
+
+        /* Upload panel */
+        .popup-upload-panel {
+            overflow: hidden;
+            max-height: 0;
+            transition: max-height 0.4s cubic-bezier(.2, 0, 0, 1), padding 0.4s;
+            padding: 0 12px;
+            background: #fff;
+            border-radius: 0 0 10px 10px;
+            margin: -5px 12px 5px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+
+        .popup-upload-panel.open {
+            max-height: 250px;
+            padding: 10px 12px;
+        }
+
+        .upload-panel-title {
+            font-family: 'Google Sans', sans-serif;
+            font-size: 11px;
+            font-weight: 500;
+            color: #49454f;
+            margin-bottom: 6px;
+        }
+
+        .upload-tab-list {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .upload-tab-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 0;
+            font-size: 11px;
+            color: #49454f;
+            border-top: 1px solid #eae8e2;
+        }
+
+        .upload-tab-item:first-child {
+            border-top: none;
+        }
+
+        .upload-tab-item img {
+            width: 14px;
+            height: 14px;
+            border-radius: 3px;
+        }
+
+        .upload-tab-item .ut-title {
+            flex: 1;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .btn-upload-sim {
+            width: 100%;
+            padding: 8px;
+            margin-top: 8px;
+            border: none;
+            border-radius: 100px;
+            background: #6750a4;
+            color: #fff;
+            font-family: 'Google Sans', sans-serif;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-upload-sim:hover {
+            background: #7b61c4;
+        }
+
+        .btn-upload-sim.uploading {
+            background: #7b61c4;
+        }
+
+        .btn-upload-sim.done {
+            background: #1b6e2d;
+        }
+
+        .upload-done-msg {
+            font-size: 11px;
+            text-align: center;
+            margin-top: 6px;
+            color: #1b6e2d;
+            opacity: 0;
+            transition: opacity 0.3s;
+        }
+
+        .upload-done-msg.show {
+            opacity: 1;
+        }
+
+        /* Toast */
+        .toast {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%) translateY(20px);
+            background: #323232;
+            color: #fff;
+            padding: 10px 24px;
+            border-radius: 8px;
+            font-size: 13px;
+            font-family: 'Google Sans', sans-serif;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+            opacity: 0;
+            transition: all 0.35s cubic-bezier(.2, 0, 0, 1);
+            z-index: 600;
+            white-space: nowrap;
+            pointer-events: none;
+        }
+
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* IDs for clicking targets */
+        #click-tab2 {}
+
+        #click-tab3 {}
+
+        #click-ext {}
+
+        #click-nb1 {}
+
+        #click-upload {}
+    </style>
+</head>
+
+<body>
+
+    <div class="chrome-window" id="chrome-window">
+
+        <!-- Title bar -->
+        <div class="title-bar">
+            <div class="window-btns">
+                <span class="close"></span>
+                <span class="min"></span>
+                <span class="max"></span>
+            </div>
+        </div>
+
+        <!-- Tab bar -->
+        <div class="tab-bar" id="tab-bar">
+            <div class="tab active" id="tab-1">
+                <img class="tab-favicon"
+                    src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%234285f4'/%3E%3Ctext x='4' y='12' font-size='10' fill='white' font-family='sans-serif'%3Ed%3C/text%3E%3C/svg%3E"
+                    alt="">
+                <span class="tab-label">Transformers Architecture - Docs</span>
+                <span class="tab-close">×</span>
+            </div>
+            <div class="tab" id="click-tab2">
+                <img class="tab-favicon"
+                    src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%23ea4335'/%3E%3Ctext x='3' y='12' font-size='10' fill='white' font-family='sans-serif'%3EA%3C/text%3E%3C/svg%3E"
+                    alt="">
+                <span class="tab-label">Attention Is All You Need - arXiv</span>
+                <span class="tab-close">×</span>
+            </div>
+            <div class="tab" id="click-tab3">
+                <img class="tab-favicon"
+                    src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%2334a853'/%3E%3Ctext x='3' y='12' font-size='10' fill='white' font-family='sans-serif'%3EW%3C/text%3E%3C/svg%3E"
+                    alt="">
+                <span class="tab-label">Self-Attention Mechanism - Wiki</span>
+                <span class="tab-close">×</span>
+            </div>
+            <span class="tab-new">+</span>
+        </div>
+
+        <!-- URL bar -->
+        <div class="url-bar-area">
+            <div class="nav-btns">
+                <span>←</span>
+                <span>→</span>
+                <span>↻</span>
+            </div>
+            <div class="url-box">
+                <span class="lock-icon">🔒</span>
+                <span class="url-text">docs.example.com/ml/transformers-architecture</span>
+            </div>
+            <div class="ext-area">
+                <div class="ext-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                        <rect width="24" height="24" rx="4" fill="#e8eaed" />
+                        <path d="M7 7h4v4H7zm6 0h4v4h-4zm-6 6h4v4H7zm6 0h4v4h-4z" fill="#5f6368" />
+                    </svg>
+                </div>
+                <div class="ext-icon" id="click-ext">
+                    <img src="icon_dark.svg" alt="NotebookLM" style="width:18px;height:18px;">
+                </div>
+                <div class="ext-icon">
+                    <svg width="18" height="18" viewBox="0 0 24 24">
+                        <circle cx="12" cy="5" r="2" fill="#5f6368" />
+                        <circle cx="12" cy="12" r="2" fill="#5f6368" />
+                        <circle cx="12" cy="19" r="2" fill="#5f6368" />
+                    </svg>
+                </div>
+            </div>
+        </div>
+
+        <!-- Page content -->
+        <div class="page-content">
+            <div class="page-body">
+                <div class="breadcrumb"><span>ML Documentation</span> / Architectures / Transformers</div>
+                <h1>Transformers Architecture Overview</h1>
+                <div class="article-meta">
+                    <span>📅 Updated Feb 24, 2026</span>
+                    <span>⏱ 12 min read</span>
+                    <span>👁 4.2k views</span>
+                </div>
+                <p style="margin-top:20px;">
+                    The Transformer architecture, introduced in the seminal paper "Attention Is All You Need" by Vaswani
+                    et al. (2017),
+                    revolutionized the field of natural language processing and has since become the backbone of modern
+                    large language models.
+                    Unlike recurrent neural networks, Transformers process all positions in a sequence simultaneously
+                    through self-attention mechanisms.
+                </p>
+                <div class="skeleton-img"></div>
+                <div class="skeleton-line" style="margin-top:24px;"></div>
+                <div class="skeleton-line"></div>
+                <div class="skeleton-line"></div>
+                <div class="skeleton-line"></div>
+                <div class="skeleton-line" style="width:60%;"></div>
+            </div>
+        </div>
+
+        <!-- Extension popup (initially hidden) -->
+        <div class="ext-popup-overlay" id="popup-overlay">
+            <div class="ext-popup" id="ext-popup">
+                <div class="popup-header">
+                    <div class="popup-brand">
+                        <img src="icon_dark.svg" alt="">
+                        <span>NotebookLM</span>
+                    </div>
+                    <div class="popup-header-right">
+                        <span class="popup-tab-badge" id="popup-badge">3 tabs</span>
+                        <button class="popup-refresh-btn">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="23 4 23 10 17 10" />
+                                <polyline points="1 20 1 14 7 14" />
+                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15" />
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="popup-search-wrap">
+                    <div class="popup-search-box">
+                        <span class="popup-search-icon">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                                stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="11" cy="11" r="8" />
+                                <line x1="21" y1="21" x2="16.65" y2="16.65" />
+                            </svg>
+                        </span>
+                        <input type="text" class="popup-search-input" placeholder="Search notebooks" readonly>
+                    </div>
+                </div>
+
+                <div class="popup-status">
+                    <span>Synced just now</span>
+                    <span class="count">4</span>
+                </div>
+
+                <div class="popup-list">
+                    <div class="popup-section-label">Recent</div>
+                    <div class="popup-nb-card" id="click-nb1">
+                        <div class="nb-emoji">🚀</div>
+                        <div class="nb-info">
+                            <div class="nb-name">ML Research Project</div>
+                            <div class="nb-sources">12 sources</div>
+                        </div>
+                        <span class="nb-arrow">›</span>
+                    </div>
+
+                    <div class="popup-upload-panel" id="upload-panel">
+                        <div class="upload-panel-title">📎 Tabs to upload</div>
+                        <div class="upload-tab-list">
+                            <div class="upload-tab-item">
+                                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%234285f4'/%3E%3Ctext x='4' y='12' font-size='10' fill='white' font-family='sans-serif'%3Ed%3C/text%3E%3C/svg%3E"
+                                    alt="">
+                                <span class="ut-title">Transformers Architecture - Docs</span>
+                            </div>
+                            <div class="upload-tab-item">
+                                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%23ea4335'/%3E%3Ctext x='3' y='12' font-size='10' fill='white' font-family='sans-serif'%3EA%3C/text%3E%3C/svg%3E"
+                                    alt="">
+                                <span class="ut-title">Attention Is All You Need - arXiv</span>
+                            </div>
+                            <div class="upload-tab-item">
+                                <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' rx='3' fill='%2334a853'/%3E%3Ctext x='3' y='12' font-size='10' fill='white' font-family='sans-serif'%3EW%3C/text%3E%3C/svg%3E"
+                                    alt="">
+                                <span class="ut-title">Self-Attention Mechanism - Wiki</span>
+                            </div>
+                        </div>
+                        <button class="btn-upload-sim" id="click-upload">Upload 3 tabs</button>
+                        <div class="upload-done-msg" id="upload-msg">✓ Uploaded successfully!</div>
+                    </div>
+
+                    <div class="popup-section-label" style="margin-top:4px;">All notebooks</div>
+                    <div class="popup-nb-card">
+                        <div class="nb-emoji">📋</div>
+                        <div class="nb-info">
+                            <div class="nb-name">Meeting Notes</div>
+                            <div class="nb-sources">5 sources</div>
+                        </div>
+                        <span class="nb-arrow">›</span>
+                    </div>
+                    <div class="popup-nb-card">
+                        <div class="nb-emoji">🗺️</div>
+                        <div class="nb-info">
+                            <div class="nb-name">Product Roadmap</div>
+                            <div class="nb-sources">8 sources</div>
+                        </div>
+                        <span class="nb-arrow">›</span>
+                    </div>
+                    <div class="popup-nb-card">
+                        <div class="nb-emoji">📚</div>
+                        <div class="nb-info">
+                            <div class="nb-name">Course Notes - CS229</div>
+                            <div class="nb-sources">21 sources</div>
+                        </div>
+                        <span class="nb-arrow">›</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Toast -->
+        <div class="toast" id="toast">✓ 3 tabs uploaded to ML Research Project</div>
+
+    </div>
+
+    <script>
+        // Interactive demo: each click on the right element advances state
+        const tab1 = document.getElementById('tab-1');
+        const tab2 = document.getElementById('click-tab2');
+        const tab3 = document.getElementById('click-tab3');
+        const extBtn = document.getElementById('click-ext');
+        const popupOverlay = document.getElementById('popup-overlay');
+        const nb1 = document.getElementById('click-nb1');
+        const uploadPanel = document.getElementById('upload-panel');
+        const btnUpload = document.getElementById('click-upload');
+        const uploadMsg = document.getElementById('upload-msg');
+        const toast = document.getElementById('toast');
+        const popupBadge = document.getElementById('popup-badge');
+
+        // Click on tab2 => highlight tab1 and tab2
+        tab2.addEventListener('click', function () {
+            tab1.classList.add('highlighted');
+            tab2.classList.add('highlighted');
+            // Make tab2 active
+            tab1.classList.remove('active');
+            tab2.classList.add('active');
+        });
+
+        // Click on tab3 => highlight tab3 too
+        tab3.addEventListener('click', function () {
+            tab1.classList.add('highlighted');
+            tab2.classList.add('highlighted');
+            tab3.classList.add('highlighted');
+        });
+
+        // Click ext icon => show popup
+        extBtn.addEventListener('click', function () {
+            popupOverlay.classList.add('visible');
+        });
+
+        // Click notebook => select + show upload panel
+        nb1.addEventListener('click', function () {
+            nb1.classList.add('selected');
+            uploadPanel.classList.add('open');
+        });
+
+        // Click upload => run upload effect
+        btnUpload.addEventListener('click', function () {
+            btnUpload.textContent = 'Uploading...';
+            btnUpload.classList.add('uploading');
+            setTimeout(function () {
+                btnUpload.textContent = '✓ Done!';
+                btnUpload.classList.remove('uploading');
+                btnUpload.classList.add('done');
+                uploadMsg.classList.add('show');
+                toast.classList.add('show');
+                setTimeout(function () {
+                    toast.classList.remove('show');
+                }, 3000);
+            }, 1200);
+        });
+    </script>
+
+</body>
+
+</html>
