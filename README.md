@@ -4,7 +4,7 @@
   <br/>
   
   <h3><strong>NotebookLM Chrome Extension</strong></h3>
-  <p>Upload your open browser tabs straight into Google NotebookLM notebooks, without leaving the page.</p>
+  <p>A Chrome extension for uploading browser tabs directly into your Google NotebookLM notebooks.</p>
   
   <p>
     <a href="#"><img src="https://img.shields.io/badge/Version-1.0-blueviolet?style=for-the-badge&logo=googlechrome" alt="Version 1.0"></a>
@@ -19,51 +19,48 @@
 ***
 
 ## ⚠️ Disclaimer
-**This is an unofficial extension made for educational purposes.** Not affiliated with or endorsed by Google or the NotebookLM team.
+**This is an unofficial extension built for educational purposes.** It is not affiliated with or endorsed by Google or the NotebookLM team.
 
 ***
 
-## What it does
+## Features
 
-- **Quick uploads** — Click the icon, pick a notebook, and your selected tabs get uploaded as sources. That's it.
-- **Caching & background sync** — Your notebook list is cached locally, so the popup opens fast even if your connection is slow. It syncs in the background when it can.
-- **Search** — Type to filter through your notebooks if you have a lot of them.
-- **Looks like it belongs** — The UI follows NotebookLM's own design language so it doesn't feel out of place.
-- **Right-click to upload** — See a link you want to save? Right-click it and send it to a notebook from the context menu.
+- **Tab uploading** — Select one or more browser tabs and upload them as sources to any of your notebooks.
+- **Local caching** — Notebook data is cached locally so the popup loads quickly, even on slower connections. Data syncs automatically in the background.
+- **Notebook search** — Filter through your notebooks by name using the built-in search bar.
+- **Consistent UI** — Designed to match NotebookLM's visual style.
+- **Context menu integration** — Right-click any link on a page and upload it to a notebook directly.
 
 ## Installation
 
-Not on the Chrome Web Store (yet), so you'll need to load it manually:
+This extension is not on the Chrome Web Store yet, so it needs to be loaded manually:
 
-1. **Clone or download** the repo.
+1. **Clone or download** this repository.
    ```bash
    git clone https://github.com/your-username/NotebookLM-chrome-extension.git
    ```
-2. Go to `chrome://extensions/` in Chrome.
-3. Turn on **Developer Mode** (toggle in the top-right corner).
-4. Click **"Load unpacked"** and point it at the `NotebookLM-chrome-extension` folder.
+2. Open `chrome://extensions/` in Chrome.
+3. Enable **Developer Mode** using the toggle in the top-right corner.
+4. Click **"Load unpacked"** and select the `NotebookLM-chrome-extension` directory.
 
-You should see the icon in your toolbar after that.
+The extension icon should now appear in your toolbar.
 
-## How to use
+## Usage
 
-1. **Pin the extension** so it's easy to reach.
-2. Make sure you're logged into **[NotebookLM](https://notebooklm.google.com/)** in the same browser.
-3. Open the tab(s) you want to add — you can select multiple by holding `Ctrl`/`Cmd` and clicking them.
-4. Click the extension icon, pick a notebook, and hit **Upload**.
-5. You can also right-click any link on a page to upload it directly from the context menu.
+1. **Pin the extension** to your toolbar for easy access.
+2. Make sure you are signed into **[NotebookLM](https://notebooklm.google.com/)** in the same browser.
+3. Navigate to the tab(s) you want to upload. You can select multiple tabs by holding `Ctrl`/`Cmd` and clicking.
+4. Click the extension icon, select a notebook, and click **Upload**.
+5. Alternatively, right-click any link on a page and use the context menu to upload it to a notebook.
 
-## Built with
+## Tech Stack
 
-- **Vanilla JS** — No frameworks, no build step, no dependencies.
-- **Manifest V3** — Uses Chrome's latest extension API with service workers.
-- **CSS variables + animations** — Keeps the styling clean and easy to tweak.
+- **Vanilla JavaScript** — No frameworks or external dependencies.
+- **Manifest V3** — Built on Chrome's latest extension platform using service workers.
+- **CSS Variables & Animations** — Lightweight, maintainable styling.
 
 <br/>
 
 <div align="center">
   <img src="icon.png" width="48" alt="NotebookLM Extension Logo">
-  <br>
-  <br>
-  <i>Made for people who use NotebookLM a lot.</i>
 </div>
