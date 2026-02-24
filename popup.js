@@ -28,14 +28,12 @@ const els = {
 //  Bootstrap
 // ────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
-  // Check if opened with a pending link from context menu
-  const params = new URLSearchParams(window.location.search);
-  if (params.get('pending') === '1') {
-    const data = await chrome.storage.local.get(PENDING_KEY);
-    if (data[PENDING_KEY]) {
-      pendingLink = data[PENDING_KEY];
-      showPendingBanner(pendingLink);
-    }
+  // Check if there is a pending link from the context menu
+  const pendingData = await chrome.storage.local.get(PENDING_KEY);
+  if (pendingData[PENDING_KEY]) {
+    pendingLink = pendingData[PENDING_KEY];
+    chrome.storage.local.remove(PENDING_KEY);
+    showPendingBanner(pendingLink);
   }
 
   updateTabBadge();
@@ -451,7 +449,7 @@ async function doPendingUpload(nb, card) {
   const meta = card.querySelector('.nb-meta');
   const origMeta = meta.textContent;
   card.classList.add('selected');
-  meta.textContent = 'Uploading…';
+  meta.textContent = 'Uploading...';
   meta.classList.add('loading-dots');
 
   chrome.runtime.sendMessage(

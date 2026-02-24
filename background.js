@@ -74,19 +74,10 @@ chrome.contextMenus.onClicked.addListener(async (info) => {
   const linkUrl = info.linkUrl;
   if (!linkUrl) return;
 
-  // "More…" – save the link and open the popup
+  // "More…" – save the link and open the toolbar popup
   if (info.menuItemId === 'nlm-more') {
     await chrome.storage.local.set({ [PENDING_KEY]: linkUrl });
-    // Open the popup programmatically (opens as a new window because
-    // service workers cannot trigger the action popup directly)
-    const popupURL = chrome.runtime.getURL('popup.html') + '?pending=1';
-    chrome.windows.create({
-      url: popupURL,
-      type: 'popup',
-      width: 420,
-      height: 560,
-      focused: true,
-    });
+    chrome.action.openPopup();
     return;
   }
 
