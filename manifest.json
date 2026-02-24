@@ -4,7 +4,6 @@
   "version": "1.0",
   "description": "Browse your NotebookLM notebooks and upload selected browser tabs as sources — right from the toolbar.",
   "permissions": [
-    "cookies",
     "storage",
     "tabs",
     "contextMenus"
