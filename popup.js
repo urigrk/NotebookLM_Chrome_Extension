@@ -1,15 +1,18 @@
 // ────────────────────────────────────────────
 //  NotebookLM Extension – popup.js
 //  Features: cache, search, smart refresh,
-//            recent notebooks, inline upload
+//            recent notebooks, inline upload,
+//            pending-link mode (context menu)
 // ────────────────────────────────────────────
 
 const CACHE_KEY = 'nlm_notebooks';
 const RECENT_KEY = 'nlm_recent';
 const MAX_RECENT = 3;
+const PENDING_KEY = 'nlm_pending_link';
 
 let allNotebooks = [];
 let selectedNotebook = null;
+let pendingLink = null;   // set when opened via context-menu "More…"
 
 // ── DOM refs ──
 const els = {
@@ -25,12 +28,22 @@ const els = {
 //  Bootstrap
 // ────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', async () => {
+  // Check if opened with a pending link from context menu
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('pending') === '1') {
+    const data = await chrome.storage.local.get(PENDING_KEY);
+    if (data[PENDING_KEY]) {
+      pendingLink = data[PENDING_KEY];
+      showPendingBanner(pendingLink);
+    }
+  }
+
   updateTabBadge();
   const cached = await loadCache();
   if (cached && cached.length > 0) {
     allNotebooks = cached;
     renderList();
-    els.statusText().textContent = 'Loaded from cache';
+    els.statusText().textContent = pendingLink ? 'Choose a notebook' : 'Loaded from cache';
   } else {
     showEmpty('first');
   }
@@ -245,6 +258,12 @@ function appendCard(nb, isRecent) {
 }
 
 async function toggleCard(nb, card, panel) {
+  // ── Pending-link mode: upload directly on click ──
+  if (pendingLink) {
+    doPendingUpload(nb, card);
+    return;
+  }
+
   const wasSelected = card.classList.contains('selected');
 
   // Close any open panel
@@ -395,4 +414,84 @@ function showEmpty(type) {
     els.statusText().textContent = 'Ready';
   }
   els.statusCount().textContent = '';
+}
+
+// ────────────────────────────────────────────
+//  Pending-link mode (context menu → More…)
+// ────────────────────────────────────────────
+function showPendingBanner(url) {
+  // Insert a banner right before the notebook list
+  const banner = document.createElement('div');
+  banner.id = 'pending-banner';
+  banner.innerHTML = `
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/>
+      <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>
+    </svg>
+    <div class="pending-info">
+      <span class="pending-label">Upload link</span>
+      <span class="pending-url" title="${url}">${url}</span>
+    </div>
+    <button class="pending-close" title="Cancel">X</button>
+  `;
+  banner.querySelector('.pending-close').addEventListener('click', () => {
+    pendingLink = null;
+    chrome.storage.local.remove(PENDING_KEY);
+    banner.remove();
+    els.statusText().textContent = `${allNotebooks.length} notebooks`;
+  });
+
+  const listEl = els.list();
+  listEl.parentNode.insertBefore(banner, listEl);
+}
+
+async function doPendingUpload(nb, card) {
+  // Disable further clicks
+  const meta = card.querySelector('.nb-meta');
+  const origMeta = meta.textContent;
+  card.classList.add('selected');
+  meta.textContent = 'Uploading…';
+  meta.classList.add('loading-dots');
+
+  chrome.runtime.sendMessage(
+    { action: 'uploadLinks', notebookId: nb.id, urls: [pendingLink] },
+    (response) => {
+      meta.classList.remove('loading-dots');
+      if (response.success) {
+        meta.textContent = '✓ Uploaded!';
+        card.classList.remove('selected');
+        card.classList.add('updating');
+        pushRecent(nb.id);
+
+        // Update source count
+        const existing = allNotebooks.find(n => n.id === nb.id);
+        if (existing) {
+          existing.sourceCount += 1;
+          saveCache(allNotebooks);
+        }
+
+        // Clean up pending state
+        chrome.storage.local.remove(PENDING_KEY);
+        const banner = document.getElementById('pending-banner');
+        if (banner) banner.remove();
+        pendingLink = null;
+
+        setTimeout(() => {
+          meta.textContent = existing
+            ? `${existing.sourceCount} sources`
+            : origMeta;
+          card.classList.remove('updating');
+          els.statusText().textContent = 'Link uploaded!';
+        }, 1500);
+      } else {
+        meta.textContent = '✗ Failed';
+        card.classList.remove('selected');
+        setTimeout(() => {
+          meta.textContent = origMeta;
+          els.statusText().textContent = response.error || 'Upload failed';
+        }, 2000);
+      }
+    }
+  );
 }

@@ -1,3 +1,6 @@
+// ────────────────────────────────────────────
+//  Message listener
+// ────────────────────────────────────────────
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "fetchData") {
     handleFullFlow(sendResponse);
@@ -6,6 +9,131 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
   if (request.action === "uploadLinks") {
     handleUploadLinks(request.notebookId, request.urls, sendResponse);
     return true;
+  }
+});
+
+// ────────────────────────────────────────────
+//  Context menu – dynamic sub-menu
+// ────────────────────────────────────────────
+const CACHE_KEY = 'nlm_notebooks';
+const RECENT_KEY = 'nlm_recent';
+const MAX_RECENT = 3;
+const PENDING_KEY = 'nlm_pending_link';
+
+// Build (or rebuild) the context menu tree
+async function rebuildContextMenu() {
+  // Remove all existing items first
+  await chrome.contextMenus.removeAll();
+
+  // Parent item – always present
+  chrome.contextMenus.create({
+    id: 'nlm-parent',
+    title: 'Upload to NotebookLM',
+    contexts: ['link'],
+  });
+
+  // Load recents + cached notebooks to resolve titles
+  const data = await chrome.storage.local.get([RECENT_KEY, CACHE_KEY]);
+  const recents = data[RECENT_KEY] || [];
+  const notebooks = data[CACHE_KEY] || [];
+
+  if (recents.length > 0 && notebooks.length > 0) {
+    const nbMap = new Map(notebooks.map(nb => [nb.id, nb]));
+
+    recents.forEach((id, idx) => {
+      const nb = nbMap.get(id);
+      if (!nb) return;
+      chrome.contextMenus.create({
+        id: `nlm-recent-${idx}`,
+        parentId: 'nlm-parent',
+        title: `${nb.emoji} ${nb.title}`,
+        contexts: ['link'],
+      });
+    });
+
+    // Separator
+    chrome.contextMenus.create({
+      id: 'nlm-sep',
+      parentId: 'nlm-parent',
+      type: 'separator',
+      contexts: ['link'],
+    });
+  }
+
+  // "More…" opens the popup
+  chrome.contextMenus.create({
+    id: 'nlm-more',
+    parentId: 'nlm-parent',
+    title: 'More notebooks…',
+    contexts: ['link'],
+  });
+}
+
+// Handle context-menu clicks
+chrome.contextMenus.onClicked.addListener(async (info) => {
+  const linkUrl = info.linkUrl;
+  if (!linkUrl) return;
+
+  // "More…" – save the link and open the popup
+  if (info.menuItemId === 'nlm-more') {
+    await chrome.storage.local.set({ [PENDING_KEY]: linkUrl });
+    // Open the popup programmatically (opens as a new window because
+    // service workers cannot trigger the action popup directly)
+    const popupURL = chrome.runtime.getURL('popup.html') + '?pending=1';
+    chrome.windows.create({
+      url: popupURL,
+      type: 'popup',
+      width: 420,
+      height: 560,
+      focused: true,
+    });
+    return;
+  }
+
+  // Recent-notebook shortcut – upload directly
+  if (info.menuItemId.startsWith('nlm-recent-')) {
+    const idx = parseInt(info.menuItemId.replace('nlm-recent-', ''), 10);
+    const data = await chrome.storage.local.get([RECENT_KEY, CACHE_KEY]);
+    const recents = data[RECENT_KEY] || [];
+    const notebooks = data[CACHE_KEY] || [];
+    const nbId = recents[idx];
+    if (!nbId) return;
+    const nb = notebooks.find(n => n.id === nbId);
+
+    // Upload the single link
+    try {
+      await handleUploadLinksAsync(nbId, [linkUrl]);
+      // Show a transient badge to confirm success
+      chrome.action.setBadgeBackgroundColor({ color: '#1b6e2d' });
+      chrome.action.setBadgeText({ text: '✓' });
+      setTimeout(() => chrome.action.setBadgeText({ text: '' }), 2500);
+    } catch (e) {
+      chrome.action.setBadgeBackgroundColor({ color: '#ba1a1a' });
+      chrome.action.setBadgeText({ text: '✗' });
+      setTimeout(() => chrome.action.setBadgeText({ text: '' }), 3000);
+      console.error('Context-menu upload failed:', e);
+    }
+  }
+});
+
+// Promisified version of handleUploadLinks for internal use
+function handleUploadLinksAsync(notebookId, urls) {
+  return new Promise((resolve, reject) => {
+    handleUploadLinks(notebookId, urls, (response) => {
+      if (response.success) resolve(response);
+      else reject(new Error(response.error || 'Upload failed'));
+    });
+  });
+}
+
+// Rebuild on install / startup
+chrome.runtime.onInstalled.addListener(() => rebuildContextMenu());
+chrome.runtime.onStartup.addListener(() => rebuildContextMenu());
+
+// Rebuild whenever the recents or notebook cache changes
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === 'local' && (changes[RECENT_KEY] || changes[CACHE_KEY])) {
+    rebuildContextMenu();
   }
 });
 

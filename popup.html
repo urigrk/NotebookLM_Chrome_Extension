@@ -536,6 +536,67 @@
         content: '...';
       }
     }
+
+    /* ── Pending-link banner ── */
+    #pending-banner {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px;
+      margin: 0;
+      background: var(--accent-light);
+      border-bottom: 1px solid var(--border-selected);
+      flex-shrink: 0;
+      color: var(--accent-on);
+    }
+
+    #pending-banner svg {
+      flex-shrink: 0;
+      color: var(--accent);
+    }
+
+    #pending-banner .pending-info {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+
+    #pending-banner .pending-label {
+      font-family: 'Google Sans', sans-serif;
+      font-size: 11px;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--accent);
+    }
+
+    #pending-banner .pending-url {
+      font-size: 12px;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    #pending-banner .pending-close {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 14px;
+      padding: 4px;
+      border-radius: var(--radius-full);
+      line-height: 1;
+      transition: var(--transition);
+      flex-shrink: 0;
+    }
+
+    #pending-banner .pending-close:hover {
+      background: rgba(0,0,0,0.08);
+      color: var(--text-primary);
+    }
   </style>
 </head>
 

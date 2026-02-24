@@ -6,7 +6,8 @@
   "permissions": [
     "cookies",
     "storage",
-    "tabs"
+    "tabs",
+    "contextMenus"
   ],
   "host_permissions": [
     "https://notebooklm.google.com/*"
