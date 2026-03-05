@@ -7,6 +7,7 @@
   <p>A Chrome extension for uploading browser tabs directly into your Google NotebookLM notebooks.</p>
   
   <p>
+    <a href="https://chromewebstore.google.com/detail/ejnnnjddaafnfdahpnhdnchlimkjncpi"><img src="https://img.shields.io/badge/Install-Chrome_Web_Store-4285F4?style=for-the-badge&logo=googlechrome&logoColor=white" alt="Install from Chrome Web Store"></a>
     <a href="#"><img src="https://img.shields.io/badge/Version-1.0-blueviolet?style=for-the-badge&logo=googlechrome" alt="Version 1.0"></a>
     <a href="#"><img src="https://img.shields.io/badge/License-MIT-blueviolet?style=for-the-badge" alt="License MIT"></a>
   </p>
@@ -33,7 +34,11 @@
 
 ## Installation
 
-This extension is not on the Chrome Web Store yet, so it needs to be loaded manually:
+### Chrome Web Store (Recommended)
+
+Install it directly from the **[Chrome Web Store](https://chromewebstore.google.com/detail/ejnnnjddaafnfdahpnhdnchlimkjncpi)**.
+
+### Install from Source
 
 1. **Clone or download** this repository.
    ```bash

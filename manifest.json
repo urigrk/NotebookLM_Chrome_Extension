@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "NotebookLM",
+  "name": "NotebookLM Tab Importer",
   "version": "1.0",
   "description": "Browse your NotebookLM notebooks and upload selected browser tabs as sources — right from the toolbar.",
   "permissions": [
@@ -12,13 +12,13 @@
     "https://notebooklm.google.com/*"
   ],
   "icons": {
-    "16": "icon.png",
-    "48": "icon.png",
-    "128": "icon.png"
+    "16": "icon_new.png",
+    "48": "icon_new.png",
+    "128": "icon_new.png"
   },
   "action": {
     "default_popup": "popup.html",
-    "default_icon": "icon.png"
+    "default_icon": "icon_new.png"
   },
   "background": {
     "service_worker": "background.js"
