@@ -20,6 +20,11 @@ const els = {
   search: () => document.getElementById('search'),
   badge: () => document.getElementById('tab-badge'),
   refresh: () => document.getElementById('btn-refresh'),
+  create: () => document.getElementById('btn-create'),
+  createPanel: () => document.getElementById('create-panel'),
+  createName: () => document.getElementById('create-name'),
+  createSubmit: () => document.getElementById('btn-create-submit'),
+  createCancel: () => document.getElementById('btn-create-cancel'),
   statusText: () => document.getElementById('status-text'),
   statusCount: () => document.getElementById('status-count'),
 };
@@ -49,6 +54,15 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Bindings
   els.refresh().addEventListener('click', () => syncNotebooks());
   els.search().addEventListener('input', onSearch);
+
+  // Create notebook bindings
+  els.create().addEventListener('click', toggleCreatePanel);
+  els.createCancel().addEventListener('click', () => closeCreatePanel());
+  els.createSubmit().addEventListener('click', () => doCreateNotebook());
+  els.createName().addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') doCreateNotebook();
+    if (e.key === 'Escape') closeCreatePanel();
+  });
 
   // Auto-sync on popup open
   syncNotebooks();
@@ -83,13 +97,12 @@ async function loadRecents() {
     chrome.storage.local.get(RECENT_KEY, data => resolve(data[RECENT_KEY] || []));
   });
 }
-function pushRecent(id) {
-  loadRecents().then(recents => {
-    recents = recents.filter(r => r !== id);
-    recents.unshift(id);
-    if (recents.length > MAX_RECENT) recents.length = MAX_RECENT;
-    chrome.storage.local.set({ [RECENT_KEY]: recents });
-  });
+async function pushRecent(id) {
+  const recents = await loadRecents();
+  const updated = recents.filter(r => r !== id);
+  updated.unshift(id);
+  if (updated.length > MAX_RECENT) updated.length = MAX_RECENT;
+  await chrome.storage.local.set({ [RECENT_KEY]: updated });
 }
 
 // ────────────────────────────────────────────
@@ -385,6 +398,57 @@ function onSearch() {
   });
 
   updateStatusCount();
+}
+
+// ────────────────────────────────────────────
+//  Create notebook
+// ────────────────────────────────────────────
+function toggleCreatePanel() {
+  const panel = els.createPanel();
+  const isOpen = panel.classList.contains('open');
+  if (isOpen) {
+    closeCreatePanel();
+  } else {
+    panel.classList.add('open');
+    els.createName().value = '';
+    els.createName().focus();
+  }
+}
+
+function closeCreatePanel() {
+  els.createPanel().classList.remove('open');
+  els.createName().value = '';
+}
+
+async function doCreateNotebook() {
+  const title = els.createName().value.trim();
+  const submitBtn = els.createSubmit();
+  const nameInput = els.createName();
+
+  submitBtn.disabled = true;
+  submitBtn.textContent = 'Creating...';
+  nameInput.disabled = true;
+
+  chrome.runtime.sendMessage(
+    { action: 'createNotebook', title },
+    async (response) => {
+      submitBtn.disabled = false;
+      submitBtn.textContent = 'Create';
+      nameInput.disabled = false;
+
+      if (response.success) {
+        const nb = response.notebook;
+        allNotebooks.unshift(nb);
+        saveCache(allNotebooks);
+        await pushRecent(nb.id);
+        renderList();
+        closeCreatePanel();
+        els.statusText().textContent = 'Notebook created!';
+      } else {
+        els.statusText().textContent = 'Error: ' + (response.error || 'Failed');
+      }
+    }
+  );
 }
 
 // ────────────────────────────────────────────

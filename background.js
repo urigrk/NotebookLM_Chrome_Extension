@@ -10,6 +10,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     handleUploadLinks(request.notebookId, request.urls, sendResponse);
     return true;
   }
+  if (request.action === "createNotebook") {
+    createNotebook(request.title, sendResponse);
+    return true;
+  }
 });
 
 // ────────────────────────────────────────────
@@ -155,13 +159,13 @@ const GDRIVE_PATTERNS = [
   {
     regex: /drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/,
     method: 'drive',
-    mimeType: 'application/octet-stream',
+    mimeType: 'application/vnd.google-apps.document',
     defaultTitle: 'Drive file',
   },
   {
     regex: /drive\.google\.com\/open\?id=([a-zA-Z0-9_-]+)/,
     method: 'drive',
-    mimeType: 'application/octet-stream',
+    mimeType: 'application/vnd.google-apps.document',
     defaultTitle: 'Drive file',
   },
 ];
@@ -263,17 +267,19 @@ async function uploadDriveLinks(notebookId, driveFiles, atToken) {
   // Handle export files (Docs, Slides) — export + 3-step upload
   for (const file of exportFiles) {
     console.log(`Exporting Drive file ${file.fileId} as ${file.format}...`);
+    const htmlRes = await fetch(file.originalUrl);
+    const html = await htmlRes.text();
+    const title = html.match(/<meta property="og:title" content="([^"]+)">/)?.[1] || 'Untitled';
 
     // 1. Export the file from Google Drive (follows 307 redirect)
     const exportUrl = `https://docs.google.com/${file.exportPath}/u/0/export?format=${file.format}&id=${file.fileId}`;
     const exportRes = await fetch(exportUrl, { redirect: 'follow' });
-
     if (!exportRes.ok) {
       throw new Error(`Failed to export Drive file ${file.fileId}: ${exportRes.status}`);
     }
 
     const fileBlob = await exportRes.blob();
-    const fileName = `${file.fileId}.${file.format}`;
+    const fileName = `${title}.${file.format}`;
     console.log(`Downloaded ${fileName} (${fileBlob.size} bytes)`);
 
     // 2. Create the source entry in NotebookLM (rpcid: o4cbdc)
@@ -289,10 +295,10 @@ async function uploadDriveLinks(notebookId, driveFiles, atToken) {
     console.log(`Successfully uploaded ${fileName} to NotebookLM`);
   }
 
-  // Handle drive shortcut files (Sheets, generic Drive) — single izAoDd call
-  if (driveShortcutFiles.length > 0) {
-    await uploadDriveShortcut(notebookId, driveShortcutFiles, atToken);
-  }
+  // Handle drive shortcut files (Sheets, generic Drive - NOT WORKING YET
+  //if (driveShortcutFiles.length > 0) {
+  //  await uploadDriveShortcut(notebookId, driveShortcutFiles, atToken);
+  //}
 }
 
 async function uploadDriveShortcut(notebookId, driveFiles, atToken) {
@@ -382,6 +388,48 @@ async function uploadFileBytes(uploadUrl, fileBlob) {
   });
 
   if (!response.ok) throw new Error(`Failed to upload file: ${response.status}`);
+}
+
+async function createNotebook(title, sendResponse) {
+  try {
+    const htmlRes = await fetch('https://notebooklm.google.com/');
+    const html = await htmlRes.text();
+    const atToken = html.match(/"SNlM0e":"([^"]+)"/)?.[1];
+    if (!atToken) throw new Error("Could not find auth token. Are you logged in?");
+
+    const rpcid = "CCqFvf";
+    const innerPayload = [title || "", null, null, [2], [1, null, null, null, null, null, null, null, null, null, [1]]];
+    const fReq = JSON.stringify([[[rpcid, JSON.stringify(innerPayload), null, "generic"]]]);
+
+    const response = await fetch(
+      `https://notebooklm.google.com/_/LabsTailwindUi/data/batchexecute?rpcids=${rpcid}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: new URLSearchParams({ "f.req": fReq, "at": atToken })
+    });
+
+    if (!response.ok) throw new Error(`Server responded with ${response.status}`);
+
+    const text = await response.text();
+    const cleanJson = JSON.parse(text.replace(/^\)\]\}'[\s]*/, ""));
+    const rawDataString = cleanJson[0][2];
+    const nb = JSON.parse(rawDataString);
+
+    // Extract the new notebook info from the response
+
+    const newNotebook = {
+      title: nb[0] || title || "Untitled Notebook",
+      id: nb[2] || nb[4] || "no-id",
+      emoji: nb[3] || "📔",
+      sourceCount: 0,
+    };
+
+    console.log("Created notebook:", newNotebook);
+    sendResponse({ success: true, notebook: newNotebook });
+  } catch (e) {
+    console.error("Create notebook failed:", e);
+    sendResponse({ success: false, error: e.message });
+  }
 }
 
 async function handleFullFlow(sendResponse) {
